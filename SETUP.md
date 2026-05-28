@@ -163,76 +163,6 @@ EPOCHS = 10  # Adjust based on your system
 
 ---
 
-## Troubleshooting
-
-### Issue: "No module named 'tensorflow'"
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate
-
-# Reinstall TensorFlow
-pip install --upgrade tensorflow
-```
-
-### Issue: "IndexError: list index out of range" in Data Loading
-```bash
-# Verify dataset structure
-ls chest_xray/train/NORMAL/ | head -5
-ls chest_xray/train/PNEUMONIA/ | head -5
-
-# If empty, dataset wasn't extracted properly
-unzip -u chest-xray-pneumonia.zip
-```
-
-### Issue: "Metal encountered an error: Could not allocate buffer"
-This means GPU ran out of memory (Apple Silicon):
-```python
-# Reduce batch size in notebook
-BATCH_SIZE = 16  # Reduced from 32
-```
-
-### Issue: Very Slow Training (Apple Silicon)
-Check if Metal GPU is being used:
-```python
-# Run in notebook cell
-import tensorflow as tf
-gpu_devices = tf.config.list_physical_devices('GPU')
-if gpu_devices:
-    print(f"✓ GPU acceleration available: {len(gpu_devices)} device(s)")
-else:
-    print("✗ No GPU acceleration detected")
-```
-
-### Issue: "Cannot locate Kaggle API token"
-```bash
-# Create Kaggle configuration manually
-mkdir -p ~/.kaggle
-
-# Get your API token from https://www.kaggle.com/account
-# Create file ~/.kaggle/kaggle.json and paste:
-# {"username":"YOUR_USERNAME","key":"YOUR_API_KEY"}
-
-chmod 600 ~/.kaggle/kaggle.json
-```
-
----
-
-## Monitoring Training Progress
-
-### View Training in Real-time
-The notebook cells will show:
-- Loss curves
-- Accuracy metrics
-- Epoch progress
-- Time per epoch
-
-### Expected Training Time
-- **Apple Silicon with Metal**: ~2-3 minutes per epoch
-- **Intel Mac or CPU-only**: ~5-10 minutes per epoch
-- **Full 10 epochs**: ~20-60 minutes depending on hardware
-
----
-
 ## After Training
 
 ### Save Model Weights
@@ -257,16 +187,6 @@ deactivate
 
 ---
 
-## Next Steps
-
-1. ✅ Setup complete!
-2. 📊 Run the notebook cells sequentially
-3. 📈 Monitor training metrics
-4. 🔍 Analyze Grad-CAM visualizations
-5. 📝 Document your findings
-
----
-
 ## Additional Resources
 
 - [TensorFlow Installation Guide](https://www.tensorflow.org/install)
@@ -275,13 +195,5 @@ deactivate
 - [Jupyter Notebook Documentation](https://jupyter.org/)
 
 ---
-
-## Troubleshooting Checklist
-
-If you encounter issues, verify:
-1. All packages installed: `pip list`
-2. Python version: `python --version`
-3. Dataset structure: `ls chest_xray/` (should show: train, test, val)
-4. TensorFlow working: `python -c "import tensorflow as tf; print(tf.__version__)"`
 
 Good luck! 🚀
