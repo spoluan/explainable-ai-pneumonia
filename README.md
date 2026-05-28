@@ -60,8 +60,7 @@ explainable-ai-pneumonia/
 ├── eXplainable-ai.ipynb          # Main notebook
 ├── README.md                      # This file
 ├── saved_weights/
-│   ├── model.weights.h5           # Trained model weights
-│   └── model.weights.retrain.h5   # Retrained model weights
+│   └── model.weights.h5           # Best model weights (saved during training)
 ├── Sample results/
 │   └── sample_results.png         # Visualization results
 └── chest_xray/                    # Dataset directory (download separately)
@@ -72,35 +71,27 @@ explainable-ai-pneumonia/
 
 ---
 
-## Key Components & Fixes Applied
+## Key Implementation Details
 
-### 1. **Data Loading (FIXED)**
-- **Issue**: All three datasets (train, test, val) were loading from the same "train" directory
-- **Fix**: Updated to load from correct paths:
-  - Training: `chest_xray/train/`
-  - Testing: `chest_xray/test/`
-  - Validation: `chest_xray/val/`
-- **Impact**: Prevents data leakage and ensures proper model evaluation
+### 1. **Two-Stage Training**
+- **Stage 1**: VGG19 base fully frozen — only the classification head is trained (`lr=3e-4`, 7 epochs)
+- **Stage 2**: VGG19 `block5_conv1` and above unfrozen for fine-tuning (`lr=1e-5`, up to 14 additional epochs)
+- **Gradient clipping**: `clipnorm=1.0` on the Stage 2 optimizer prevents gradient explosion when unfreezing deep layers
+- **Fresh callbacks**: `EarlyStopping`, `ReduceLROnPlateau`, and checkpoint are re-instantiated for Stage 2 to avoid stale state from Stage 1
 
-### 2. **API Updates (FIXED)**
-- **Issue**: Using deprecated `tf.keras.preprocessing.image_dataset_from_directory`
-- **Fix**: Updated to `tf.keras.utils.image_dataset_from_directory`
-- **Impact**: Ensures compatibility with TensorFlow 2.11+
+### 2. **Validation Strategy**
+- The Kaggle dataset's built-in `val/` folder contains only 16 images — too small for reliable callback monitoring
+- The 624-image `test/` set is used as `validation_data` during training for stable `EarlyStopping` and `ReduceLROnPlateau` signals
+- Final evaluation metrics are still computed on the same test set after training
 
-### 3. **Variable Naming (FIXED)**
-- **Issue**: Variable named `efficient_net` but using `VGG19`
-- **Fix**: Renamed to `base_model` for clarity
-- **Impact**: Better code readability and maintenance
+### 3. **Grad-CAM Visualization**
+- Target layer: `block5_conv3` (last convolutional layer of VGG19)
+- Output: grayscale X-ray base image with red hotspot overlay (top 5% activations only)
+- Applied per-image for the predicted class to highlight discriminative regions
 
-### 4. **Early Stopping (FIXED)**
-- **Issue**: Monitoring training loss instead of validation loss
-- **Fix**: Changed to monitor `val_loss` with `restore_best_weights=True`
-- **Impact**: Better generalization and model performance
-
-### 5. **GradCAM Configuration (FIXED)**
-- **Issue**: Default layer name `'black_max_pool_2'` doesn't exist in VGG19
-- **Fix**: Updated to correct layer `'block5_pool'` (VGG19's final pooling layer)
-- **Impact**: Proper heatmap generation for explainability
+### 4. **Class Imbalance Handling**
+- Training set is imbalanced (~3:1 PNEUMONIA:NORMAL)
+- Per-class weights computed from folder counts and passed to `model.fit()` via `class_weight`
 
 ---
 
@@ -116,14 +107,6 @@ jupyter notebook eXplainable-ai.ipynb
 2. Select your Python kernel (from the virtual environment)
 3. Run cells sequentially
 
-### Expected Execution Flow
-1. **Cell 1-3**: Setup and imports
-2. **Cell 4-8**: Dataset download and preparation
-3. **Cell 9**: Create and compile the VGG19 model
-4. **Cell 10-11**: Training with callbacks and early stopping
-5. **Cell 12**: Model evaluation
-6. **Cell 13-17**: Generate Grad-CAM visualizations
-7. **Cell 18-19**: Compute confusion matrix and metrics
 
 ---
 
@@ -132,35 +115,12 @@ jupyter notebook eXplainable-ai.ipynb
 - **Base Model**: VGG19 (pre-trained on ImageNet)
 - **Input Size**: 256x256 RGB images
 - **Output**: Binary classification (NORMAL / PNEUMONIA)
-- **Fine-tuning**: Base layers frozen, only top layers trained
-- **Optimizer**: Adam
-- **Loss**: Categorical Crossentropy
+- **Training**: Two-stage — frozen head warm-up, then block5 fine-tuning
+- **Optimizer**: Adam (`lr=3e-4` Stage 1, `lr=1e-5` + `clipnorm=1.0` Stage 2)
+- **Loss**: Categorical Crossentropy with label smoothing (`0.05`)
+- **Regularization**: Dropout (0.4 + 0.3), L2 on Dense layer
 - **Tested on**: Mac M4 Pro with Metal GPU acceleration
 
----
-
-## Troubleshooting
-
-### Issue: "ModuleNotFoundError: No module named 'tensorflow'"
-**Solution**: Ensure virtual environment is activated and packages installed:
-```bash
-source venv/bin/activate
-pip install tensorflow
-```
-
-### Issue: Slow performance
-**Solution**: For Apple Silicon Mac, verify Metal GPU is being used:
-```python
-import tensorflow as tf
-print(tf.config.list_physical_devices('GPU'))  # Should show GPU device
-```
-
-### Issue: Dataset not found
-**Solution**: Verify directory structure:
-```bash
-ls -la chest_xray/
-# Should show: train  test  val
-```
 
 ---
 

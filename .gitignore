@@ -35,3 +35,4 @@ __MACOSX/
 # Environment variables
 .env
 .env.local
+saved_weights/*.h5
