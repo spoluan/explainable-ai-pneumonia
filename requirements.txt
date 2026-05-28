@@ -1,0 +1,22 @@
+# Explainable AI - Pneumonia Detection Project
+# Requirements for running the notebook
+
+# Core Data Science & ML
+tensorflow==2.16.2
+tensorflow-metal==1.2.0  # GPU acceleration for Apple Silicon (compatible with TF 2.16)
+numpy
+pandas
+scikit-learn
+
+# Visualization
+matplotlib
+
+# Image Processing
+opencv-python
+
+# Jupyter & Notebooks
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Optional: For better notebook experience
+ipywidgets>=7.6.0
